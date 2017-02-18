@@ -13,9 +13,9 @@ dt=np.pi/150
 
 #V0 = 1e10
 #a = 1e-10
-V0 = 100
+V0 = 1.5
 a = 3.
-E = 5
+E = 1.4
 
 class Potential(object):
     def __init__(self, V0, a):
@@ -40,8 +40,8 @@ class WaveFunction(object):
     def psi1_R(self, x): return self.A1 * np.exp(1j*self.k1*x) 
     def psi1_L(self, x): return self.B1 * np.exp(-1j*self.k1*x) 
     def psi1(self, x): return self.psi1_R(x) + self.psi1_L(x)
-    def psi2_L(self, x): return self.A2 * np.exp(1j*self.k2*x)
-    def psi2_R(self, x): return self.B2 * np.exp(-1j*self.k2*x) 
+    def psi2_L(self, x): return self.A2 * np.exp(self.k2*x) # k2 can be imag
+    def psi2_R(self, x): return self.B2 * np.exp(-self.k2*x) # k2 can be imag
     def psi2(self, x): return self.psi2_R(x) + self.psi2_L(x)
     def psi3(self, x): return self.B3 * np.exp(1j*self.k1*x) 
 
@@ -57,16 +57,21 @@ class WaveFunction(object):
 
     def _calc_coefficients(self, E, potential):
         # numerically solve for coefficients that satisfy continuity of psi and psi'
+        # k2 can be real or imag depending on V0-E
         k1=np.sqrt(2.*m*E)/hbar
-        k2=np.sqrt(2.*m*(V0+E))/hbar
+        if V0-E<0:
+            k2 = 1j*np.sqrt(-2.*m*(V0-E))/hbar
+        if V0-E>=0:
+            k2 = np.sqrt(2.*m*(V0-E))/hbar
+        # k2=np.sqrt(2.*m*(V0+E))/hbar
         xp = np.exp(1j*k1*a/2.)
         xm = np.exp(-1j*k1*a/2.)
-        yp = np.exp(1j*k2*a/2.)
-        ym = np.exp(-1j*k2*a/2.)
+        yp = np.exp(k2*a/2.)
+        ym = np.exp(-k2*a/2.)
         f = np.array([[xm, xp, -ym, -yp, 0.],
-                      [k1*xm, -k1*xp, -k2*ym, k2*yp, 0.],
+                      [1j*k1*xm, -1j*k1*xp, -k2*ym, k2*yp, 0.],
                       [0., 0., yp, ym, -xp],
-                      [0., 0., k2*yp, -k2*ym, -k1*xp],
+                      [0., 0., k2*yp, -k2*ym, -1j*k1*xp],
                       [1., 0., 0., 0., 0.]])
         g = np.array([0., 0., 0., 0., 1.])
         coefficients = np.linalg.solve(f, g)
@@ -98,9 +103,9 @@ def plot_stationary(wave_function):
     
     # manually plot potential
     plt.plot([x_range[0], -a/2], [0, 0], 'k-', lw=3)
-    plt.plot([-a/2, -a/2], [0, -V0], 'k-', lw=3)
-    plt.plot([-a/2, a/2], [-V0, -V0], 'k-', lw=3)
-    plt.plot([a/2, a/2], [-V0, 0], 'k-', lw=3)
+    plt.plot([-a/2, -a/2], [0, V0], 'k-', lw=3)
+    plt.plot([-a/2, a/2], [V0, V0], 'k-', lw=3)
+    plt.plot([a/2, a/2], [V0, 0], 'k-', lw=3)
     plt.plot([a/2, x_range[1]], [0,0], 'k-', lw=3)
     
     # plot wave function
@@ -135,9 +140,9 @@ def animate_scattering(wave_function):
     def init():
         # manually plot potential
         ax.plot([x_range[0], -a/2], [0, 0], 'k-', lw=3)
-        ax.plot([-a/2, -a/2], [0, -V0], 'k-', lw=3)
-        ax.plot([-a/2, a/2], [-V0, -V0], 'k-', lw=3)
-        ax.plot([a/2, a/2], [-V0, 0], 'k-', lw=3)
+        ax.plot([-a/2, -a/2], [0, V0], 'k-', lw=3)
+        ax.plot([-a/2, a/2], [V0, V0], 'k-', lw=3)
+        ax.plot([a/2, a/2], [V0, 0], 'k-', lw=3)
         ax.plot([a/2, x_range[1]], [0,0], 'k-', lw=3)
 
         lines[0].set_data([], [])
