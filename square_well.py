@@ -13,9 +13,9 @@ dt=np.pi/150
 
 #V0 = 1e10
 #a = 1e-10
-V0 = 1.5
+V0 = 1
 a = 3.
-E = 1.4
+E = 1.5
 
 class Potential(object):
     def __init__(self, V0, a):
@@ -29,19 +29,14 @@ class WaveFunction(object):
         k1,k2,A1,B1,A2,B2,B3 = self._calc_coefficients(E, potential)
         self.k1 = k1      
         self.k2 = k2
-        norm = np.absolute(A1) + np.absolute(B1)
-        self.A1 = A1/norm
-        self.B1 = B1/norm
-        self.A2 = A2/norm
-        self.B2 = B2/norm
-        self.B3 = B3/norm
+        self.T = self._calc_transmission_coefficient()
 
     # define stationart wave functions pieces
     def psi1_R(self, x): return self.A1 * np.exp(1j*self.k1*x) 
     def psi1_L(self, x): return self.B1 * np.exp(-1j*self.k1*x) 
     def psi1(self, x): return self.psi1_R(x) + self.psi1_L(x)
-    def psi2_L(self, x): return self.A2 * np.exp(self.k2*x) # k2 can be imag
-    def psi2_R(self, x): return self.B2 * np.exp(-self.k2*x) # k2 can be imag
+    def psi2_L(self, x): return self.A2 * np.exp(1j*self.k2*x) # k2 can be imag
+    def psi2_R(self, x): return self.B2 * np.exp(-1j*self.k2*x) # k2 can be imag
     def psi2(self, x): return self.psi2_R(x) + self.psi2_L(x)
     def psi3(self, x): return self.B3 * np.exp(1j*self.k1*x) 
 
@@ -52,41 +47,45 @@ class WaveFunction(object):
         a = self.potential.a
         x = x+0j
         phase = np.exp(-1j*self.E*t/hbar)
-        return phase * np.piecewise(x, [x.real<=-a/2., (x.real>-a/2) & (x.real<a/2.), x.real>=a/2.], 
+        #return phase * np.piecewise(x, [x.real<=-a/2., (x.real>-a/2) & (x.real<a/2.), x.real>=a/2.], 
+        #                            [self.psi1, self.psi2, self.psi3])
+        return phase * np.piecewise(x, [x.real<=0, (x.real>0) & (x.real<a), x.real>=a], 
                                     [self.psi1, self.psi2, self.psi3])
 
     def _calc_coefficients(self, E, potential):
-        # numerically solve for coefficients that satisfy continuity of psi and psi'
-        # k2 can be real or imag depending on V0-E
+        # coefficients that satisfy continuity of psi and psi'
+        # k2 can be real or imag depending on E-V0
+        # real case corresponds to plane waves because psi2: e^ix, e^-ix
         k1=np.sqrt(2.*m*E)/hbar
         if V0-E<0:
-            k2 = 1j*np.sqrt(-2.*m*(V0-E))/hbar
+            k2 = np.sqrt(2.*m*(E-V0))/hbar
         if V0-E>=0:
-            k2 = np.sqrt(2.*m*(V0-E))/hbar
-        # k2=np.sqrt(2.*m*(V0+E))/hbar
-        xp = np.exp(1j*k1*a/2.)
-        xm = np.exp(-1j*k1*a/2.)
-        yp = np.exp(k2*a/2.)
-        ym = np.exp(-k2*a/2.)
-        f = np.array([[xm, xp, -ym, -yp, 0.],
-                      [1j*k1*xm, -1j*k1*xp, -k2*ym, k2*yp, 0.],
-                      [0., 0., yp, ym, -xp],
-                      [0., 0., k2*yp, -k2*ym, -1j*k1*xp],
-                      [1., 0., 0., 0., 0.]])
-        g = np.array([0., 0., 0., 0., 1.])
-        coefficients = np.linalg.solve(f, g)
-        A1 = coefficients[0]
-        B1 = coefficients[1]
-        A2 = coefficients[2]
-        B2 = coefficients[3]
-        B3 = coefficients[4]
+            k2 = 1j*np.sqrt(2.*m*(V0-E))/hbar
+        A1 = -np.exp(1j*k1*a)/4/k1/k2 * ((k2-k1)**2*np.exp(1j*k2*a)-(k1+k2)**2*np.exp(-1j*k2*a))
+        B1 = np.exp(1j*k1*a)/4/k1/k2 * (k2-k1) * (k1+k2) * (np.exp(1j*k2*a)-np.exp(-1j*k2*a))
+        A2 = (k1+k2)/2/k2*np.exp(1j*(k1-k2)*a)
+        B2 = (k2-k1)/2/k2*np.exp(1j*(k1+k2)*a)
+        B3 = 1.
         
+        # normalize so norm of incident wave is 1
+        norm = np.absolute(A1)
+        self.A1 = A1/norm
+        self.B1 = B1/norm
+        self.A2 = A2/norm
+        self.B2 = B2/norm
+        self.B3 = B3/norm
+
         return k1,k2,A1,B1,A2,B2,B3
+
+    def _calc_transmission_coefficient(self):
+        return np.absolute(self.B3) / np.absolute(self.A1)
+       
 
 def main():
     pot = Potential(V0, a)
     wf = WaveFunction(E, pot)
 
+    print "Transmission coefficient", wf.T
     plot_stationary(wf)
     animate_scattering(wf)
 
@@ -102,11 +101,11 @@ def plot_stationary(wave_function):
     plt.axhline(linewidth=0.5, color = 'k')
     
     # manually plot potential
-    plt.plot([x_range[0], -a/2], [0, 0], 'k-', lw=3)
-    plt.plot([-a/2, -a/2], [0, V0], 'k-', lw=3)
-    plt.plot([-a/2, a/2], [V0, V0], 'k-', lw=3)
-    plt.plot([a/2, a/2], [V0, 0], 'k-', lw=3)
-    plt.plot([a/2, x_range[1]], [0,0], 'k-', lw=3)
+    plt.plot([x_range[0], 0], [0, 0], 'k-', lw=3)
+    plt.plot([0, 0], [0, V0], 'k-', lw=3)
+    plt.plot([0, a], [V0, V0], 'k-', lw=3)
+    plt.plot([a, a], [V0, 0], 'k-', lw=3)
+    plt.plot([a, x_range[1]], [0,0], 'k-', lw=3)
     
     # plot wave function
     plt.plot(x, np.real(wave_function.Psi(x, 0.)))
@@ -139,11 +138,11 @@ def animate_scattering(wave_function):
 
     def init():
         # manually plot potential
-        ax.plot([x_range[0], -a/2], [0, 0], 'k-', lw=3)
-        ax.plot([-a/2, -a/2], [0, V0], 'k-', lw=3)
-        ax.plot([-a/2, a/2], [V0, V0], 'k-', lw=3)
-        ax.plot([a/2, a/2], [V0, 0], 'k-', lw=3)
-        ax.plot([a/2, x_range[1]], [0,0], 'k-', lw=3)
+        ax.plot([x_range[0], 0], [0, 0], 'k-', lw=3)
+        ax.plot([0, 0], [0, V0], 'k-', lw=3)
+        ax.plot([0, a], [V0, V0], 'k-', lw=3)
+        ax.plot([a, a], [V0, 0], 'k-', lw=3)
+        ax.plot([a, x_range[1]], [0,0], 'k-', lw=3)
 
         lines[0].set_data([], [])
         lines[1].set_data([], [])
