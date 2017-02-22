@@ -29,6 +29,11 @@ class WaveFunction(object):
         k1,k2,A1,B1,A2,B2,A3 = self._calc_coefficients(E, potential)
         self.k1 = k1      
         self.k2 = k2
+        self.A1 = A1
+        self.B1 = B1
+        self.A2 = A2
+        self.B2 = B2
+        self.A3 = A3
         self.T = self._calc_transmission_coefficient()
 
     # define stationart wave functions pieces
@@ -66,13 +71,14 @@ class WaveFunction(object):
         A3 = 1.
         
         # normalize so norm of incident wave is 1
-        norm = np.absolute(A1)
-        self.A1 = A1/norm
-        self.B1 = B1/norm
-        self.A2 = A2/norm
-        self.B2 = B2/norm
-        self.A3 = A3/norm
+        const = A1
+        A1 = A1/const
+        B1 = B1/const
+        A2 = A2/const
+        B2 = B2/const
+        A3 = A3/const
 
+        print k1,k2,A1,B1,A2,B2,A3
         return k1,k2,A1,B1,A2,B2,A3
 
     def _calc_transmission_coefficient(self):
