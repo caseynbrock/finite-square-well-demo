@@ -13,7 +13,7 @@ dt=np.pi/150
 
 #V0 = 1e10
 #a = 1e-10
-V0 = 1
+V0 = 2
 a = 3.
 E = 1.5
 
@@ -26,7 +26,7 @@ class WaveFunction(object):
     def __init__(self, E, potential):
         self.E = E
         self.potential = potential
-        k1,k2,A1,B1,A2,B2,B3 = self._calc_coefficients(E, potential)
+        k1,k2,A1,B1,A2,B2,A3 = self._calc_coefficients(E, potential)
         self.k1 = k1      
         self.k2 = k2
         self.T = self._calc_transmission_coefficient()
@@ -38,7 +38,7 @@ class WaveFunction(object):
     def psi2_L(self, x): return self.A2 * np.exp(1j*self.k2*x) # k2 can be imag
     def psi2_R(self, x): return self.B2 * np.exp(-1j*self.k2*x) # k2 can be imag
     def psi2(self, x): return self.psi2_R(x) + self.psi2_L(x)
-    def psi3(self, x): return self.B3 * np.exp(1j*self.k1*x) 
+    def psi3(self, x): return self.A3 * np.exp(1j*self.k1*x) 
 
     # define actual wave function
     def Psi(self, x, t):
@@ -47,8 +47,6 @@ class WaveFunction(object):
         a = self.potential.a
         x = x+0j
         phase = np.exp(-1j*self.E*t/hbar)
-        #return phase * np.piecewise(x, [x.real<=-a/2., (x.real>-a/2) & (x.real<a/2.), x.real>=a/2.], 
-        #                            [self.psi1, self.psi2, self.psi3])
         return phase * np.piecewise(x, [x.real<=0, (x.real>0) & (x.real<a), x.real>=a], 
                                     [self.psi1, self.psi2, self.psi3])
 
@@ -65,7 +63,7 @@ class WaveFunction(object):
         B1 = np.exp(1j*k1*a)/4/k1/k2 * (k2-k1) * (k1+k2) * (np.exp(1j*k2*a)-np.exp(-1j*k2*a))
         A2 = (k1+k2)/2/k2*np.exp(1j*(k1-k2)*a)
         B2 = (k2-k1)/2/k2*np.exp(1j*(k1+k2)*a)
-        B3 = 1.
+        A3 = 1.
         
         # normalize so norm of incident wave is 1
         norm = np.absolute(A1)
@@ -73,12 +71,12 @@ class WaveFunction(object):
         self.B1 = B1/norm
         self.A2 = A2/norm
         self.B2 = B2/norm
-        self.B3 = B3/norm
+        self.A3 = A3/norm
 
-        return k1,k2,A1,B1,A2,B2,B3
+        return k1,k2,A1,B1,A2,B2,A3
 
     def _calc_transmission_coefficient(self):
-        return np.absolute(self.B3) / np.absolute(self.A1)
+        return np.absolute(self.A3) / np.absolute(self.A1)
        
 
 def main():
