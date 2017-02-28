@@ -81,28 +81,29 @@ class WaveFunction(object):
         B2 = B2/const
         A3 = A3/const
 
-        print k1,k2,A1,B1,A2,B2,A3
+        print "k1,k2,A1,B1,A2,B2,A3:  ",k1,k2,A1,B1,A2,B2,A3
         return k1,k2,A1,B1,A2,B2,A3
 
     def _calc_transmission_coefficient(self):
-        print "from scherrer", 1/(1+(V0*V0/4/E/(V0-E))*np.sinh(1j*self.k2*a)**2.)
+        print "T (analytical, from scherrer)", 1/(1+(V0*V0/4/E/(V0-E))*np.sinh(1j*self.k2*a)**2.)
         return np.absolute(self.A3)**2 / np.absolute(self.A1)**2
        
-    def find_pseudopotential(self, guess=0):
-        # find diffent V0 such that transmission coefficient is unchanged
+    def find_a_pseudopotential(self, guess=0):
+        # find alternative V0 such that transmission coefficient is unchanged
         def F(V0):
             # must pass in iterable
             # taken from Scherrer's analytical equation for transmission coefficient
             # zeros of this function represent V0 that will give transmission const = T
             T = self.T
-            return T*V0**2*np.sinh(a*np.sqrt(complex(2*m*(V0-E)))/hbar)**2 + (T-1)*4*E*(V0-E)
-        print F(-1), F(0), F(1)
-        #x = np.linspace(-1,1,100)
-        #plt.figure()
-        #plt.plot(x, F(x))
-        #plt.show()
-        V0_pseudo = scipy.optimize.broyden1(F, guess, f_tol=1e-14)           
-        print V0_pseudo, F(V0_pseudo)
+            return np.real(T*V0**2*np.sinh(a*np.sqrt(complex(2*m*(V0-E)))/hbar)**2+(T-1)*4*E*(V0-E))
+        V0_pseudo = scipy.optimize.broyden1(F, guess, f_tol=1e-14)
+        return float(V0_pseudo) # may not work if multiple solutions returned?
+
+    def find_some_pseudopotentials(self, Vmin=-5, Vmax=5):
+        # find all or most of the pseudopotentials in the range Vmin to Vmax
+        a=[self.find_a_pseudopotential(guess) for guess in np.linspace(Vmin, Vmax,100)]
+        a_unique=np.unique(np.array(a).round(decimals=8))
+        return a_unique
 
 
 def main():
