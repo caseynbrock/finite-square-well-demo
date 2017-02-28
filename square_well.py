@@ -2,6 +2,8 @@
 #
 # use consistent units
 
+import scipy
+from scipy import optimize
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
@@ -13,9 +15,10 @@ dt=np.pi/150
 
 #V0 = 1e10
 #a = 1e-10
-V0 = 2
-a = 3.
-E = 1.5
+V0 = -1
+V0 = 0.54
+a = 1.
+E = 1
 
 class Potential(object):
     def __init__(self, V0, a):
@@ -36,7 +39,7 @@ class WaveFunction(object):
         self.A3 = A3
         self.T = self._calc_transmission_coefficient()
 
-    # define stationart wave functions pieces
+    # define stationary wave functions pieces
     def psi1_R(self, x): return self.A1 * np.exp(1j*self.k1*x) 
     def psi1_L(self, x): return self.B1 * np.exp(-1j*self.k1*x) 
     def psi1(self, x): return self.psi1_R(x) + self.psi1_L(x)
@@ -78,18 +81,37 @@ class WaveFunction(object):
         B2 = B2/const
         A3 = A3/const
 
-        print k1,k2,A1,B1,A2,B2,A3
+        print "k1,k2,A1,B1,A2,B2,A3:  ",k1,k2,A1,B1,A2,B2,A3
         return k1,k2,A1,B1,A2,B2,A3
 
     def _calc_transmission_coefficient(self):
-        return np.absolute(self.A3) / np.absolute(self.A1)
+        print "T (analytical, from scherrer)", 1/(1+(V0*V0/4/E/(V0-E))*np.sinh(1j*self.k2*a)**2.)
+        return np.absolute(self.A3)**2 / np.absolute(self.A1)**2
        
+    def find_a_pseudopotential(self, guess=0):
+        # find alternative V0 such that transmission coefficient is unchanged
+        def F(V0):
+            # must pass in iterable
+            # taken from Scherrer's analytical equation for transmission coefficient
+            # zeros of this function represent V0 that will give transmission const = T
+            T = self.T
+            return np.real(T*V0**2*np.sinh(a*np.sqrt(complex(2*m*(V0-E)))/hbar)**2+(T-1)*4*E*(V0-E))
+        V0_pseudo = scipy.optimize.broyden1(F, guess, f_tol=1e-14)
+        return float(V0_pseudo) # may not work if multiple solutions returned?
+
+    def find_some_pseudopotentials(self, Vmin=-5, Vmax=5):
+        # find all or most of the pseudopotentials in the range Vmin to Vmax
+        a=[self.find_a_pseudopotential(guess) for guess in np.linspace(Vmin, Vmax,100)]
+        a_unique=np.unique(np.array(a).round(decimals=8))
+        return a_unique
+
 
 def main():
     pot = Potential(V0, a)
     wf = WaveFunction(E, pot)
 
     print "Transmission coefficient", wf.T
+    print wf.k2
     plot_stationary(wf)
     animate_scattering(wf)
 
@@ -132,13 +154,6 @@ def animate_scattering(wave_function):
     for i in range(2):
         lobj = ax.plot([],[],lw=2)[0]
         lines.append(lobj)
-    
-    # # initialization function: plot the background of each frame
-    # def init():
-    #     # should return line objects
-    #     for line in lines:
-    #         line.set_data([],[])
-    #     return lines
 
     def init():
         # manually plot potential
@@ -163,11 +178,6 @@ def animate_scattering(wave_function):
         lines[0].set_data(x, Psi_real)
         lines[1].set_data(x, Psi_imag)
         return lines[0], lines[1]
-    # def animate(i):
-    #     x = np.array(range(1,npdata.shape[0]+1))
-    #     for lnum,line in enumerate(lines):
-    #         line.set_data(x,npdata[:,plotlays[lnum]-1,i])
-    #     return tuple(lines)
     
     # call the animator.  blit=True means only re-draw the parts that have changed.
     anim = animation.FuncAnimation(fig, animate, init_func=init,
