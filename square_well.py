@@ -15,10 +15,10 @@ dt=np.pi/150
 
 #V0 = 1e10
 #a = 1e-10
-V0 = -1
-V0 = 0.54
-a = 1.
-E = 1
+#V0 = -1
+#V0 = 0.54
+#a = 1.
+#E = 1
 
 class Potential(object):
     def __init__(self, V0, a):
@@ -62,11 +62,14 @@ class WaveFunction(object):
         # coefficients that satisfy continuity of psi and psi'
         # k2 can be real or imag depending on E-V0
         # real case corresponds to plane waves because psi2: e^ix, e^-ix
+        V0 = self.potential.V0
+        a = self.potential.a
         k1=np.sqrt(2.*m*E)/hbar
         if V0-E<0:
             k2 = np.sqrt(2.*m*(E-V0))/hbar
         if V0-E>=0:
             k2 = 1j*np.sqrt(2.*m*(V0-E))/hbar
+        print "k1,k2:          ",k1,k2
         A1 = -np.exp(1j*k1*a)/4/k1/k2 * ((k2-k1)**2*np.exp(1j*k2*a)-(k1+k2)**2*np.exp(-1j*k2*a))
         B1 = np.exp(1j*k1*a)/4/k1/k2 * (k2-k1) * (k1+k2) * (np.exp(1j*k2*a)-np.exp(-1j*k2*a))
         A2 = (k1+k2)/2/k2*np.exp(1j*(k1-k2)*a)
@@ -81,29 +84,40 @@ class WaveFunction(object):
         B2 = B2/const
         A3 = A3/const
 
-        print "k1,k2,A1,B1,A2,B2,A3:  ",k1,k2,A1,B1,A2,B2,A3
+        print "A1,B1,A2,B2,A3:  ",A1,B1,A2,B2,A3
         return k1,k2,A1,B1,A2,B2,A3
 
     def _calc_transmission_coefficient(self):
+        V0 = self.potential.V0
+        a = self.potential.a
+        E = self.E
         print "T (analytical, from scherrer)", 1/(1+(V0*V0/4/E/(V0-E))*np.sinh(1j*self.k2*a)**2.)
         return np.absolute(self.A3)**2 / np.absolute(self.A1)**2
        
     def find_a_pseudopotential(self, guess=0):
         # find alternative V0 such that transmission coefficient is unchanged
+        V0 = self.potential.V0
+        a = self.potential.a
+        E = self.E
         def F(V0):
-            # must pass in iterable
             # taken from Scherrer's analytical equation for transmission coefficient
             # zeros of this function represent V0 that will give transmission const = T
             T = self.T
-            return np.real(T*V0**2*np.sinh(a*np.sqrt(complex(2*m*(V0-E)))/hbar)**2+(T-1)*4*E*(V0-E))
-        V0_pseudo = scipy.optimize.broyden1(F, guess, f_tol=1e-14)
-        return float(V0_pseudo) # may not work if multiple solutions returned?
+            #return np.real(T*V0**2*np.sinh(a*np.sqrt(complex(2*m*(V0-E)))/hbar)**2+(T-1)*4*E*(V0-E))
+            return np.real(T*V0**2/(4*E*(V0-E))*np.sinh(a*np.sqrt(complex(2*m*(V0-E)))/hbar)**2+(T-1))
+        try:
+            V0_pseudo = scipy.optimize.broyden1(F, guess, f_tol=1e-14)
+            return float(V0_pseudo) # may not work if multiple solutions returned?
+        except:
+            return None
 
-    def find_some_pseudopotentials(self, Vmin=-5, Vmax=5):
+    def find_some_pseudopotentials(self, Vmin=-5, Vmax=5, steps=50):
         # find all or most of the pseudopotentials in the range Vmin to Vmax
-        a=[self.find_a_pseudopotential(guess) for guess in np.linspace(Vmin, Vmax,100)]
-        a_unique=np.unique(np.array(a).round(decimals=8))
-        return a_unique
+        # steps is number of guesses to check
+        V_list = [self.find_a_pseudopotential(guess) for guess in np.linspace(Vmin, Vmax,steps)]
+        V_list_valid = [V for V in V_list if V is not None] # remove Nones
+        V_list_unique = np.unique(np.array(V_list_valid).round(decimals=8))
+        return V_list_unique
 
 
 def main():
@@ -183,8 +197,8 @@ def animate_scattering(wave_function):
     anim = animation.FuncAnimation(fig, animate, init_func=init,
                                    frames=10000, interval=20., blit=True)
     
-    plt.show(block=False)
-    raw_input('...')
+    plt.title('E: '+str(wave_function.E)+', a: '+str(a)+', V0: '+str(V0))
+    plt.show()
 
 if __name__ == "__main__":
     main()
