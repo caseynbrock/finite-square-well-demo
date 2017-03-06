@@ -9,8 +9,6 @@ Given a well of width a and height V0 (barrier if postive, well if negative), ot
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
 ### Prerequisites
 
 Requires Python 2, matplotlib, scipy, numpy
@@ -18,7 +16,7 @@ Requires Python 2, matplotlib, scipy, numpy
 ### Running demo with default paramters:
 
 ```
-Python test.py
+python test.py
 ```
 
 This should open several windows running the scattering animation. Notice the well depths are different but the transmission is the same in each case.
