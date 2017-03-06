@@ -1,13 +1,11 @@
 # finite-square-well-demo
 
-quick and dirty demo of pseudopotential concept using 1D finite well/barrier scattering problem. Follows discussion in Richard Martin Electronic Structure textbook problem ???. See also Scherrer problem ???.
+This is a quick and dirty demo of the pseudopotential concept using 1D finite well quantum scattering problem. It follows discussion in Richard Martin Electronic Structure textbook problem ???. See also Scherrer problem ??? and Griffiths problem ???.
 
-The main feature of this demo is an animation of a plane wave scattering past a finite square well. The well depth (a) and width (V0) can be adjusted. Normalized to ???. The transmission coefficient is given by ???. For the animation, the incident wave is normalized to ???. Full solution given by ???.
+The core feature of this demo is an animation of a plane wave scattering past a finite square well or barrier. The well depth (a) and width (V0) can be adjusted, as well as the energy (E) of the plane wave. Normalized to ???. The transmission coefficient is given by ???. For the animation, the incident wave is normalized to ???. Full solution given by ???.
 
 Pseudopotential concept:
-Given a well of width a and depth V0, other values of V0 and a can be found that do not alter the transmission coefficient (transmitted/incident). So we have a \*pseudo\* potential that essentially creates the same scattering scattering properties outside the well. The same concept applies to pseudopotentials in the atomic case, where scattering properties outside some core radius need to match the all-electron case.
-
-
+Given a well of width a and height V0 (barrier if postive, well if negative), other values of V0 and a can be found that do not alter the transmission coefficient (transmitted/incident). So we have a \*pseudo\* potential that reproduces the true potential's scattering properties away from the well or barrier. The same concept applies to pseudopotentials in the atomic case, where scattering properties outside some core radius need to match the scattering from the true atomic potential.
 
 ## Getting Started
 
@@ -17,9 +15,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 Requires Python 2, matplotlib, scipy, numpy
 
-### Running example
-
-To run with default paramters:
+### Running demo with default paramters:
 
 ```
 Python test.py
@@ -37,7 +33,7 @@ The arguments to find\_some\_pseudopotentials are Vmin, Vmax, and steps, which c
 
 ### Known Issues
 
-Running a large number of animations simultaneously will bog down computer because each is run in a separate thread. Each animation is called using subprocess, which isn't ideal but was the quickest way to run an arbitrary number of simultaneous animations in separate windows.
+Running a large number of animations simultaneously will bog down computer because each animation is run in a separate thread. Each animation is called using subprocess, which isn't ideal but was the quickest way to run an arbitrary number of simultaneous animations in separate windows.
 
 
 ## Authors
@@ -52,7 +48,9 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 
 
-## Acknowledgments
+## References
 
 * Richard Martin's Electronic Structure text book
+* Scherrer text (problem ???)
+* Griffiths text (problem ???)
 * UC Boulder PHET's Quantum Tunneling and Wave Packets Demo
